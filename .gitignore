@@ -2,3 +2,9 @@
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# model weights and run outputs (too big for GitHub; checkpoint goes to Google Drive)
+part1/out/
+part1/out_augmented/
+part2/checkpoints/
+logs/
