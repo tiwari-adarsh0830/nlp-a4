@@ -9,11 +9,13 @@ import wandb
 
 from t5_utils import initialize_model, initialize_optimizer_and_scheduler, save_model, load_model_from_checkpoint, setup_wandb
 from transformers import GenerationConfig
-from load_data import load_t5_data
+from load_data import load_t5_data, decode_queries, START_TOKEN_ID
 from utils import compute_metrics, save_queries_and_records
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 PAD_IDX = 0
+# Longest train/dev SQL is 511 T5 tokens (incl. </s>); leave headroom
+MAX_NEW_TOKENS = 600
 
 def get_args():
     '''
@@ -138,16 +140,69 @@ def eval_epoch(args, model, dev_loader, gt_sql_pth, model_sql_path, gt_record_pa
     should both provide good results. If you find that this component of evaluation takes too long with your compute,
     we found the cross-entropy loss (in the evaluation set) to be well (albeit imperfectly) correlated with F1 performance.
     '''
-    # TODO
     model.eval()
-    return 0, 0, 0, 0, 0
-        
+    total_loss = 0
+    total_tokens = 0
+    criterion = nn.CrossEntropyLoss()
+    generated_queries = []
+
+    with torch.no_grad():
+        for encoder_input, encoder_mask, decoder_input, decoder_targets, initial_decoder_inputs in tqdm(dev_loader):
+            encoder_input = encoder_input.to(DEVICE)
+            encoder_mask = encoder_mask.to(DEVICE)
+            decoder_input = decoder_input.to(DEVICE)
+            decoder_targets = decoder_targets.to(DEVICE)
+            initial_decoder_inputs = initial_decoder_inputs.to(DEVICE)
+
+            # Dev loss, computed exactly as in train_epoch (no backward pass)
+            logits = model(
+                input_ids=encoder_input,
+                attention_mask=encoder_mask,
+                decoder_input_ids=decoder_input,
+            )['logits']
+            non_pad = decoder_targets != PAD_IDX
+            loss = criterion(logits[non_pad], decoder_targets[non_pad])
+            num_tokens = torch.sum(non_pad).item()
+            total_loss += loss.item() * num_tokens
+            total_tokens += num_tokens
+
+            generated_queries.extend(generate_queries(model, encoder_input, encoder_mask, initial_decoder_inputs))
+
+    save_queries_and_records(generated_queries, model_sql_path, model_record_path)
+    sql_em, record_em, record_f1, error_msgs = compute_metrics(gt_sql_pth, model_sql_path,
+                                                               gt_record_path, model_record_path)
+    error_rate = sum(1 for msg in error_msgs if msg) / len(error_msgs)
+
+    return total_loss / total_tokens, record_f1, record_em, sql_em, error_rate
+
+def generate_queries(model, encoder_input, encoder_mask, initial_decoder_inputs):
+    '''Greedy decoding starting from our start token; returns decoded SQL strings.'''
+    outputs = model.generate(
+        input_ids=encoder_input,
+        attention_mask=encoder_mask,
+        # Both are needed: without decoder_start_token_id, HF would prepend
+        # T5's default start token (pad) in front of ours.
+        decoder_input_ids=initial_decoder_inputs,
+        decoder_start_token_id=START_TOKEN_ID,
+        max_new_tokens=MAX_NEW_TOKENS,
+    )
+    return decode_queries(outputs)
+
 def test_inference(args, model, test_loader, model_sql_path, model_record_path):
     '''
-    You must implement inference to compute your model's generated SQL queries and its associated 
+    You must implement inference to compute your model's generated SQL queries and its associated
     database records. Implementation should be very similar to eval_epoch.
     '''
-    pass
+    model.eval()
+    generated_queries = []
+    with torch.no_grad():
+        for encoder_input, encoder_mask, initial_decoder_inputs in tqdm(test_loader):
+            encoder_input = encoder_input.to(DEVICE)
+            encoder_mask = encoder_mask.to(DEVICE)
+            initial_decoder_inputs = initial_decoder_inputs.to(DEVICE)
+            generated_queries.extend(generate_queries(model, encoder_input, encoder_mask, initial_decoder_inputs))
+
+    save_queries_and_records(generated_queries, model_sql_path, model_record_path)
 
 def main():
     # Get key arguments
