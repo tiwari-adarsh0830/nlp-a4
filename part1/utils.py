@@ -55,12 +55,28 @@ def _match_case(src, tgt):
 
 
 def _get_synonym(word):
-    candidates = set()
-    for syn in wordnet.synsets(word.lower()):
+    # Only use the word's single most common sense. Pooling lemmas across every
+    # sense gave wrong-meaning swaps, and wordnet.synsets() lists all noun senses
+    # before verb/adjective ones, so synsets[0] alone still gave e.g.
+    # "watch" -> "ticker". Instead pick the sense in which this exact word form
+    # has the highest corpus usage count (lemma.count(), from SemCor).
+    # Senses never seen in SemCor (count 0) are skipped ("kept" -> "unbroken").
+    w = word.lower()
+    best_syn, best_count = None, 0
+    for syn in wordnet.synsets(w):
         for lemma in syn.lemmas():
-            name = lemma.name().replace("_", " ")
-            if name.lower() != word.lower() and name.isascii():
-                candidates.add(name)
+            # exact match only: skips inflected forms ("kept" -> "maintain")
+            if lemma.name().lower() == w and lemma.count() > best_count:
+                best_syn, best_count = syn, lemma.count()
+    if best_syn is None:
+        return None
+    candidates = set()
+    for lemma in best_syn.lemmas():
+        name = lemma.name()
+        if "_" in name or not name.isascii():  # skip multi-word / non-ASCII lemmas
+            continue
+        if name.lower() != word.lower():
+            candidates.add(name)
     if not candidates:
         return None
     return _match_case(word, random.choice(sorted(candidates)))
