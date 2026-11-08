@@ -43,7 +43,7 @@ QWERTY_NEIGHBORS = {
 }
 
 SYNONYM_PROB = 0.3  # probability of replacing an eligible word with a synonym
-TYPO_PROB = 0.2     # probability of introducing a keyboard typo into an eligible word
+TYPO_PROB = 0.35    # probability of introducing a keyboard typo into an eligible word
 
 
 def _match_case(src, tgt):
