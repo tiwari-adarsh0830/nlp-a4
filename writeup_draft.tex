@@ -1,0 +1,130 @@
+% Draft sections for the HW4 writeup -- paste into the course .tex template.
+% \todo{...} marks values that need results from Torch runs.
+\providecommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+
+% ---------------- Top of the document ----------------
+% GitHub repo: https://github.com/tiwari-adarsh0830/nlp-a4
+% Q7 checkpoint (Google Drive): \todo{link}
+% AI-use note: \todo{describe how AI tools were used}
+
+% ---------------- Q2a ----------------
+\paragraph{Q2a: Transformation.}
+I combine two noise sources that occur in real user-written reviews: word choice
+(synonym replacement) and typing errors (keyboard typos). The review is split into
+words with NLTK's \texttt{word\_tokenize}. Only \emph{eligible} words are changed:
+purely alphabetic tokens longer than three characters. This leaves punctuation,
+numbers and short function words untouched, including negations such as
+``not'' and ``no'' and short sentiment words such as ``bad'', so the label is
+preserved. Each eligible word is processed independently:
+\begin{itemize}
+  \item \textbf{Synonym replacement ($p=0.3$).} I look up the word in WordNet and keep
+  only its single most common sense: the synset in which this exact word form has the
+  highest SemCor usage count (\texttt{lemma.count()} $>0$). A synonym is drawn uniformly
+  from the other single-word lemmas of that synset, and the original capitalisation is
+  kept. Restricting to the most common sense avoids wrong-meaning swaps that come from
+  pooling every sense (e.g.\ \textit{watch}$\to$\textit{ticker},
+  \textit{boring}$\to$\textit{drilling}), and requiring an exact form match avoids
+  dropping inflections (e.g.\ \textit{kept}$\to$\textit{maintain}).
+  \item \textbf{Typo ($p=0.1$).} One random letter of the word is replaced by a
+  neighbouring key on a QWERTY keyboard (e.g.\ \textit{friends}$\to$\textit{friehds}),
+  keeping its case.
+\end{itemize}
+Both steps can apply to the same word. The result is realistic because people
+naturally paraphrase with near-synonyms (\textit{movie}/\textit{film},
+\textit{boring}/\textit{tedious}, \textit{funny}/\textit{amusing}), and
+adjacent-key slips are the most common kind of typing error. A human reader still
+recovers the sentiment immediately.
+
+% ---------------- Q3 ----------------
+\paragraph{Q3: Data augmentation.}
+\todo{Original-train model: accuracy on original test = X\%, on transformed test = Y\%.
+Augmented model: original test = X'\%, transformed test = Y'\%.
+Did augmentation help on the transformed set? What happened on the original set?
+Intuition: training on 5k transformed reviews exposes the model to synonym/typo
+variants, so it relies less on exact surface forms. Limitation: it only covers the
+specific transformation it was trained on (e.g.\ it will not help with other
+distribution shifts) and the 5k examples are noisy copies of reviews already in training.}
+
+% ---------------- Q4 ----------------
+\paragraph{Q4: Data statistics.} All lengths are in T5 (\texttt{google-t5/t5-small})
+tokens; vocabulary size is the number of distinct token ids used.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Statistics Name & Train & Dev \\
+\midrule
+Number of examples & 4225 & 466 \\
+Mean sentence length & 17.10 & 17.07 \\
+Mean SQL query length & 216.37 & 210.05 \\
+Vocabulary size (natural language) & 791 & 465 \\
+Vocabulary size (SQL) & 555 & 395 \\
+\bottomrule
+\end{tabular}
+\caption{Data statistics before any pre-processing (raw text tokenized with the T5
+tokenizer, no \texttt{</s>}). Note that 393 train and 45 dev SQL queries contain
+\texttt{<unk>}, because ``\texttt{<}'' is not in T5's vocabulary.}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+Statistics Name & Train & Dev \\
+\midrule
+\multicolumn{3}{l}{\textbf{Model name:} T5 fine-tuned (\texttt{google-t5/t5-small})} \\
+Mean sentence length & 18.10 & 18.07 \\
+Mean SQL query length & 217.37 & 211.05 \\
+Vocabulary size (natural language) & 792 & 466 \\
+Vocabulary size (SQL) & 556 & 396 \\
+\bottomrule
+\end{tabular}
+\caption{Data statistics after pre-processing (``\texttt{<}'' replaced by
+\texttt{LT}, \texttt{</s>} appended). No \texttt{<unk>} tokens remain. The longest SQL
+target is 511 tokens (train) / 503 (dev). Test: 432 examples, mean question length
+15.77 tokens.}
+\end{table}
+
+% ---------------- Q5 ----------------
+\paragraph{Q5: T5 fine-tuning design.}
+\begin{table}[h]
+\centering
+\begin{tabular}{p{3cm}p{10cm}}
+\toprule
+Design choice & Description \\
+\midrule
+Data processing &
+Natural-language questions are used as-is. In SQL targets, ``\texttt{<}'' is replaced by
+the placeholder word \texttt{LT} before tokenization and mapped back after decoding: the
+T5 vocabulary has no ``\texttt{<}'', so it would become \texttt{<unk>} and vanish,
+making $\sim$10\% of gold queries impossible to generate. \texttt{LT} never occurs in the
+data, and every train/dev query round-trips exactly after this mapping. \\
+Tokenization &
+Encoder and decoder both use the \texttt{google-t5/t5-small} tokenizer (which appends
+\texttt{</s>}). The decoder input is \texttt{<extra\_id\_0>} followed by the SQL tokens
+minus the last one, and the target is the full SQL sequence ending in \texttt{</s>}.
+Batches are padded dynamically with id 0, with an encoder attention mask, and padded
+target positions are excluded from the loss. Generation starts from the same
+\texttt{<extra\_id\_0>} token (greedy decoding, up to 600 new tokens) and is decoded
+with special tokens skipped. \\
+Architecture &
+Full fine-tuning of the pretrained T5-small: all layers (shared embeddings, all encoder
+and decoder blocks, and the tied LM head; 60.5M parameters) are trained. No layers are
+frozen. \\
+Hyperparameters &
+AdamW, learning rate \todo{}, weight decay \todo{}, \todo{cosine} schedule with
+\todo{} warm-up epoch(s), batch size \todo{16}, up to \todo{} epochs with early stopping
+on dev record F1 (patience \todo{}). \\
+\bottomrule
+\end{tabular}
+\caption{Details of the best-performing T5 model configuration.}
+\end{table}
+
+% ---------------- Q6 ----------------
+\paragraph{Q6: Results and error analysis.}
+\todo{Table 4: dev and test Query EM / record F1 for the final model, plus each variant
+tried (e.g.\ learning rate, epochs, with/without the ``<'' fix). Table 5: at least 3
+error types with an example and count (e.g.\ wrong/missing table in FROM, wrong
+constant such as city or time, missing date/day condition, syntax errors / truncated
+query), from \texttt{results/t5\_ft\_experiment\_dev.sql}.}
