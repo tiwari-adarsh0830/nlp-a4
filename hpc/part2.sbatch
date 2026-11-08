@@ -15,7 +15,7 @@
 module purge
 cd /scratch/$USER/nlp_a4/repo/part2
 
-singularity exec --nv --bind /scratch \
+singularity exec --nv \
   --overlay /scratch/$USER/nlp_a4/a4.ext3:ro \
   /share/apps/images/cuda12.1.1-cudnn8.9.0-devel-ubuntu22.04.2.sif \
   /bin/bash -c "source /ext3/env.sh; nvidia-smi -L; /ext3/miniforge3/envs/a4p2/bin/python3 train_t5.py $*"

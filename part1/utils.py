@@ -34,6 +34,50 @@ def example_transform(example):
 # You can randomly select each word with some fixed probability to replace by a synonym.
 
 
+# Neighbouring keys on a QWERTY keyboard
+QWERTY_NEIGHBORS = {
+    "q": "wa", "w": "qeas", "e": "wrsd", "r": "etdf", "t": "ryfg", "y": "tugh", "u": "yihj",
+    "i": "uojk", "o": "ipkl", "p": "ol", "a": "qwsz", "s": "awedxz", "d": "serfcx",
+    "f": "drtgvc", "g": "ftyhbv", "h": "gyujnb", "j": "huikmn", "k": "jiolm", "l": "kop",
+    "z": "asx", "x": "zsdc", "c": "xdfv", "v": "cfgb", "b": "vghn", "n": "bhjm", "m": "njk",
+}
+
+SYNONYM_PROB = 0.3  # probability of replacing an eligible word with a synonym
+TYPO_PROB = 0.1     # probability of introducing a keyboard typo into an eligible word
+
+
+def _match_case(src, tgt):
+    if src.isupper():
+        return tgt.upper()
+    if src[0].isupper():
+        return tgt[0].upper() + tgt[1:]
+    return tgt
+
+
+def _get_synonym(word):
+    candidates = set()
+    for syn in wordnet.synsets(word.lower()):
+        for lemma in syn.lemmas():
+            name = lemma.name().replace("_", " ")
+            if name.lower() != word.lower() and name.isascii():
+                candidates.add(name)
+    if not candidates:
+        return None
+    return _match_case(word, random.choice(sorted(candidates)))
+
+
+def _add_typo(word):
+    positions = [i for i, ch in enumerate(word) if ch.lower() in QWERTY_NEIGHBORS]
+    if not positions:
+        return word
+    i = random.choice(positions)
+    ch = word[i]
+    new_ch = random.choice(QWERTY_NEIGHBORS[ch.lower()])
+    if ch.isupper():
+        new_ch = new_ch.upper()
+    return word[:i] + new_ch + word[i + 1:]
+
+
 def custom_transform(example):
     ################################
     ##### YOUR CODE BEGINGS HERE ###
@@ -44,7 +88,22 @@ def custom_transform(example):
 
     # You should update example["text"] using your transformation
 
-    raise NotImplementedError
+    # Transformation: synonym replacement (WordNet) + QWERTY keyboard typos.
+    # Only alphabetic words longer than 3 characters are touched, so short function
+    # words and negations like "not"/"no" stay intact and the label is preserved.
+    tokens = word_tokenize(example["text"])
+    new_tokens = []
+    for tok in tokens:
+        if tok.isalpha() and len(tok) > 3:
+            if random.random() < SYNONYM_PROB:
+                syn = _get_synonym(tok)
+                if syn is not None:
+                    tok = syn
+            if random.random() < TYPO_PROB:
+                tok = _add_typo(tok)
+        new_tokens.append(tok)
+
+    example["text"] = TreebankWordDetokenizer().detokenize(new_tokens)
 
     ##### YOUR CODE ENDS HERE ######
 
