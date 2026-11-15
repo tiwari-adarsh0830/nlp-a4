@@ -1,0 +1,700 @@
+Dev examples where the lr1e-3 prediction does not return exactly the gold records: 78/466
+Of these, SQL execution errors: 29
+
+=== #3  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : list all arrivals from any airport to baltimore on thursday morning arriving before 9am
+GOLD: SELECT state_1.state_code FROM state state_1 WHERE state_1.state_code = 'ASD';
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_1.airport_code AND airport_1.airport_code = 'BOS' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.arrival_time < 900 AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 ) ) )
+DIFF:
+  replace: gold[state_1.state_code] -> pred[DISTINCT flight_1.flight_id]
+  replace: gold[state state_1] -> pred[flight flight_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1]
+  replace: gold[state_1.state_code] -> pred[flight_1.from_airport]
+  replace: gold['ASD';] -> pred[airport_1.airport_code AND airport_1.airport_code = 'BOS' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.arrival_time < 900 AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 ) ) )]
+
+=== #6  record F1 = 0.000
+Q   : i'm starting from denver
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER'
+DIFF:
+  insert: gold[] -> pred[, airport_service airport_service_2 , city city_2]
+  insert: gold[] -> pred[AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER']
+
+=== #20  record F1 = 0.000
+Q   : please give me the flight times i would like to fly from boston to baltimore in the morning before 8
+GOLD: SELECT DISTINCT flight_1.departure_time FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND flight_1.departure_time < 800 )
+PRED: SELECT DISTINCT flight_1.departure_time , flight_1.arrival_time FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND flight_1.departure_time < 800 )
+DIFF:
+  insert: gold[] -> pred[, flight_1.arrival_time]
+
+=== #21  record F1 = 0.000
+Q   : list all flights from boston to san francisco with the maximum number of stops
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.stops =( SELECT MAX( stops ) FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.stops = 1 )
+DIFF:
+  replace: gold[=( SELECT MAX( stops] -> pred[= 1]
+  delete: gold[FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' ) )] -> pred[]
+
+=== #23  record F1 = 0.000
+Q   : show me the flights arriving in baltimore from philadelphia at about 4 o'clock
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND( flight_1.arrival_time >= 1530 AND flight_1.arrival_time <= 1630 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND( flight_1.arrival_time >= 1630 AND flight_1.arrival_time <= 1630 ) )
+DIFF:
+  replace: gold[1530] -> pred[1630]
+
+=== #25  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : i would like information on flights from pittsburgh to baltimore arriving in baltimore before 10am on thursday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND( flight_1.arrival_time < 1000 AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND NOT(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND( flight_1.arrival_time < 1000 AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND not(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND not(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) ) ) ) ) ) ) )
+DIFF:
+  replace: gold[AND(] -> pred[AND not((]
+  insert: gold[] -> pred[)]
+  replace: gold[NOT((] -> pred[not((]
+  insert: gold[] -> pred[) ) ) )]
+
+=== #29  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : what is the cost of united airlines flight 415 from chicago to kansas city thursday night
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_2 , date_day date_day_2 WHERE fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.departure_time NOT BETWEEN 601 AND 1759 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHICAGO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'KANSAS CITY' AND( flight_1.flight_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 5 AND date_day_2.day_number = 24 AND flight_1.flight_number = 415 ) ) ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_2 , date_day date_day_2 WHERE fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.departure_time NOT BETWEEN 601 AND 1759 AND 1 = 1 ) AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHICAGO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'KANSAS CITY' AND( flight_1.flight_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 5 AND date_day_2.day_number = 24 AND( flight_1.departure_time >= 1800 AND flight_1.departure_time <= 2400 ) ) ) ) ) )
+DIFF:
+  insert: gold[] -> pred[AND 1 = 1 )]
+  insert: gold[] -> pred[AND( flight_1.departure_time >= 1800]
+  replace: gold[flight_1.flight_number = 415] -> pred[flight_1.departure_time <= 2400]
+  insert: gold[] -> pred[) )]
+
+=== #37  record F1 = 0.706
+Q   : i need an early flight from dallas to houston
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'HOUSTON' AND( flight_1.departure_time >= 0 AND flight_1.departure_time <= 1000 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.departure_time BETWEEN 0 AND 800 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'HOUSTON' )
+DIFF:
+  insert: gold[] -> pred[flight_1.departure_time BETWEEN 0 AND 800 AND(]
+  replace: gold[AND(] -> pred[AND]
+  delete: gold[AND( flight_1.departure_time >= 0 AND flight_1.departure_time <= 1000] -> pred[]
+  delete: gold[)] -> pred[]
+
+=== #39  record F1 = 0.333
+Q   : what flights does delta have from denver to dallas after 5
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.departure_time > 500 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.departure_time > 1700 ) )
+DIFF:
+  replace: gold[500] -> pred[1700]
+
+=== #40  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : please show me the cost of flight ua 201 from boston to denver and flight ua 343 from boston to denver
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND( flight_1.flight_number = 201 OR flight_1.flight_number = 343 ) ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND flight_1.flight_number = 201 ) ) OR( flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND flight_1.flight_number = 343 ) ) )
+DIFF:
+  replace: gold[AND(] -> pred[AND]
+  replace: gold[OR] -> pred[) ) OR( flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND]
+
+=== #58  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : what are the costs of flights from dallas to boston tomorrow
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 , fare_basis fare_basis_1 , days days_2 , date_day date_day_2 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 ) AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 1 AND date_day_2.day_number = 20
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_2 , date_day date_day_2 WHERE fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND flight_1.flight_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 1 AND date_day_2.day_number = 20 ) )
+DIFF:
+  insert: gold[] -> pred[, fare_basis fare_basis_1 , days days_1 , date_day date_day_1]
+  delete: gold[days_1 , date_day date_day_1 , fare_basis fare_basis_1 , days] -> pred[]
+  insert: gold[] -> pred[fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 AND]
+  delete: gold[days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 ) AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days =] -> pred[]
+  insert: gold[] -> pred[) )]
+
+=== #63  record F1 = 0.880
+Q   : us air flights departing from charlotte around 1pm
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.airline_code = 'US' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHARLOTTE' AND( flight_1.departure_time >= 1230 AND flight_1.departure_time <= 1330 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.airline_code = 'US' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHARLOTTE' AND( flight_1.departure_time >= 1330 AND flight_1.departure_time <= 1330 ) )
+DIFF:
+  replace: gold[1230] -> pred[1330]
+
+=== #70  record F1 = 0.000
+Q   : please list nonstop flights from las vegas to new york on america west
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'HP' AND( flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'AA' AND( flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' ) )
+DIFF:
+  replace: gold['HP'] -> pred['AA']
+
+=== #72  record F1 = 0.000
+Q   : what does iah mean
+GOLD: SELECT DISTINCT airport_1.airport_code FROM airport airport_1 WHERE airport_1.airport_code = 'IAH'
+PRED: SELECT DISTINCT airline_1.airline_code FROM airline airline_1 WHERE airline_1.airline_code = 'IAH'
+DIFF:
+  replace: gold[airport_1.airport_code] -> pred[airline_1.airline_code]
+  replace: gold[airport airport_1] -> pred[airline airline_1]
+  replace: gold[airport_1.airport_code] -> pred[airline_1.airline_code]
+
+=== #79  record F1 = 0.000  ERROR: OperationalError: no such column: airport_service_2.airport_code
+Q   : what's the most expensive way i can fly to washington
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , flight_fare flight_fare_1 , fare fare_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.one_direction_cost =( SELECT MAX( fare_1.one_direction_cost ) FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON' ) AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , flight_fare flight_fare_1 , fare fare_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.one_direction_cost =( SELECT MAX( fare_1.one_direction_cost ) FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON' AND flight_1.flight_id = flight_1.flight_id AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' ) AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' )
+DIFF:
+  replace: gold[)] -> pred[AND flight_1.flight_id = flight_1.flight_id]
+  insert: gold[] -> pred[= airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' ) AND( flight_1.from_airport]
+  insert: gold[] -> pred[AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' )]
+
+=== #80  record F1 = 0.026
+Q   : flights from la guardia or jfk to cleveland
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 , airport_service airport_service_1 , city city_1 WHERE( flight_1.from_airport = airport_1.airport_code AND airport_1.airport_code = 'JFK' OR flight_1.from_airport = airport_2.airport_code AND airport_2.airport_code = 'LGA' ) AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CLEVELAND'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 WHERE flight_1.from_airport = airport_1.airport_code AND airport_1.airport_code = 'LGA' OR flight_1.to_airport = airport_2.airport_code AND airport_2.airport_code = 'JFK'
+DIFF:
+  replace: gold[, airport_service airport_service_1 , city city_1 WHERE(] -> pred[WHERE]
+  replace: gold['JFK'] -> pred['LGA']
+  replace: gold[flight_1.from_airport] -> pred[flight_1.to_airport]
+  replace: gold['LGA' ) AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CLEVELAND'] -> pred['JFK']
+
+=== #98  record F1 = 0.000
+Q   : what ground transportation is available from the pittsburgh airport to downtown and how much does it cost
+GOLD: SELECT DISTINCT ground_service_1.transport_type , ground_service_1.ground_fare FROM ground_service ground_service_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , city city_2 WHERE ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND ground_service_1.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH'
+PRED: SELECT DISTINCT ground_service_1.ground_fare FROM ground_service ground_service_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , city city_2 WHERE ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND ground_service_1.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH'
+DIFF:
+  delete: gold[ground_service_1.transport_type ,] -> pred[]
+
+=== #102  record F1 = 0.000
+Q   : i'm traveling from boston to atlanta and i'd like to go sometime after 5pm but i want to know what kind of airplane it's on
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , equipment_sequence equipment_sequence_1 , aircraft aircraft_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND flight_1.departure_time > 1700 ) AND flight_1.aircraft_code_sequence = equipment_sequence_1.aircraft_code_sequence AND equipment_sequence_1.aircraft_code = aircraft_1.aircraft_code AND 1 = 1
+PRED: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 , equipment_sequence equipment_sequence_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND flight_1.departure_time > 1700 )
+DIFF:
+  replace: gold[flight_1.flight_id] -> pred[aircraft_1.aircraft_code]
+  replace: gold[flight flight_1] -> pred[aircraft aircraft_1]
+  replace: gold[aircraft aircraft_1] -> pred[flight flight_1]
+  insert: gold[] -> pred[aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND]
+  delete: gold[AND flight_1.aircraft_code_sequence = equipment_sequence_1.aircraft_code_sequence AND equipment_sequence_1.aircraft_code = aircraft_1.aircraft_code AND 1 = 1] -> pred[]
+
+=== #107  record F1 = 0.462
+Q   : what is the round trip first class fare on united from boston to san francisco
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_fare flight_fare_2 , fare fare_2 , fare_basis fare_basis_1 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_id = flight_fare_2.flight_id AND flight_fare_2.fare_id = fare_2.fare_id AND fare_2.round_trip_cost IS NOT NULL AND( fare_2.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND 1 = 1 ) ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE fare_1.round_trip_cost IS NOT NULL AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' )
+DIFF:
+  insert: gold[] -> pred[, fare_basis fare_basis_1]
+  delete: gold[, flight_fare flight_fare_2 , fare fare_2 , fare_basis fare_basis_1] -> pred[]
+  insert: gold[] -> pred[fare_1.round_trip_cost IS NOT NULL AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND]
+  replace: gold[AND(] -> pred[AND]
+  delete: gold[AND flight_1.flight_id = flight_fare_2.flight_id AND flight_fare_2.fare_id = fare_2.fare_id AND fare_2.round_trip_cost IS NOT NULL AND( fare_2.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND 1 = 1] -> pred[]
+  delete: gold[) )] -> pred[]
+
+=== #117  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : list all nonstop flights from los angeles to pittsburgh which arrive before 5pm on tuesday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LOS ANGELES' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' AND((( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND NOT(( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) AND flight_1.arrival_time < 1700 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LOS ANGELES' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' AND( flight_1.arrival_time < 1700 AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND not(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND not(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) ) ) ) ) ) ) ) ) ) ) )
+DIFF:
+  replace: gold[AND(((] -> pred[AND( flight_1.arrival_time < 1700 AND((]
+  replace: gold[NOT(( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR] -> pred[not((]
+  replace: gold[41 )] -> pred[flight_1.departure_time]
+  replace: gold[AND( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR] -> pred[AND not((]
+  replace: gold[41 )] -> pred[flight_1.departure_time]
+  delete: gold[AND flight_1.arrival_time < 1700] -> pred[]
+  insert: gold[] -> pred[) ) ) ) ) ) ) )]
+
+=== #118  record F1 = 0.000
+Q   : show me about the ground transportation in boston
+GOLD: SELECT DISTINCT ground_service_1.transport_type , ground_service_1.ground_fare FROM ground_service ground_service_1 , city city_1 WHERE ground_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON'
+PRED: SELECT DISTINCT ground_service_1.transport_type FROM ground_service ground_service_1 , city city_1 WHERE ground_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON'
+DIFF:
+  delete: gold[, ground_service_1.ground_fare] -> pred[]
+
+=== #124  record F1 = 0.000  ERROR: OperationalError: incomplete input
+Q   : what car rentals are available next sunday from denver airport
+GOLD: SELECT DISTINCT ground_service_1.transport_type FROM ground_service ground_service_1 , airport airport_1 WHERE ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = 'DEN' AND ground_service_1.transport_type = 'RENTAL CAR'
+PRED: SELECT DISTINCT ground_service_1.transport_type FROM ground_service ground_service_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( ground_service_1.transport_type = 'RENTAL CAR' AND( ground_service_1.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND ground_service_1.transport_type = 'RENTAL CAR' AND ground_service_1.transport_type = 'RENTAL CAR' )
+DIFF:
+  insert: gold[] -> pred[, airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1]
+  replace: gold['DEN'] -> pred[airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( ground_service_1.transport_type = 'RENTAL CAR' AND( ground_service_1.city_code = city_2.city_code AND city_2.city_name = 'DENVER']
+  insert: gold[] -> pred[AND ground_service_1.transport_type = 'RENTAL CAR' )]
+
+=== #130  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : from las vegas to new york a nonstop twa and fare
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , flight_fare flight_fare_1 , fare fare_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'TW' AND( flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' ) ) AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND 1 = 1
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' ) AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'TW' ) )
+DIFF:
+  replace: gold[flight_1.flight_id] -> pred[fare_1.fare_id]
+  replace: gold[flight flight_1] -> pred[fare fare_1]
+  replace: gold[fare fare_1] -> pred[flight flight_1]
+  replace: gold[flight_1.airline_code] -> pred[fare_1.fare_id]
+  replace: gold['TW' AND(] -> pred[flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND]
+  insert: gold[] -> pred[AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'TW']
+  replace: gold[AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND 1 = 1] -> pred[)]
+
+=== #133  record F1 = 0.000
+Q   : could you please find me a nonstop flight from atlanta to baltimore on a boeing 757 arriving at 7pm
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , equipment_sequence equipment_sequence_1 , aircraft aircraft_1 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND(( flight_1.arrival_time >= 1830 AND flight_1.arrival_time <= 1930 ) AND flight_1.aircraft_code_sequence = equipment_sequence_1.aircraft_code_sequence AND equipment_sequence_1.aircraft_code = aircraft_1.aircraft_code AND aircraft_1.manufacturer = 'BOEING' AND aircraft_1.basic_type = '757' ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , equipment_sequence equipment_sequence_1 , aircraft aircraft_1 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' AND( flight_1.aircraft_code_sequence = equipment_sequence_1.aircraft_code_sequence AND equipment_sequence_1.aircraft_code = aircraft_1.aircraft_code AND aircraft_1.basic_type = 'BOEING' AND aircraft_1.basic_type = '757' ) ) )
+DIFF:
+  replace: gold[AND(( flight_1.arrival_time >= 1830 AND flight_1.arrival_time <= 1930 ) AND] -> pred[AND(]
+  replace: gold[aircraft_1.manufacturer] -> pred[aircraft_1.basic_type]
+
+=== #138  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : list all flights on continental leaving seattle on sunday after 430pm
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'CO' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SEATTLE' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND flight_1.departure_time > 1630 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'CO' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SEATTLE' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND flight_1.departure_time > 1630 ) ) )
+DIFF:
+  insert: gold[] -> pred[)]
+
+=== #141  record F1 = 0.933
+Q   : i need a cheap flight from baltimore to san francisco
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND NOT( fare_basis_1.booking_class = 'Y' ) AND fare_basis_1.economy = 'YES' )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.economy = 'YES' )
+DIFF:
+  delete: gold[NOT( fare_basis_1.booking_class = 'Y' ) AND] -> pred[]
+
+=== #142  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : a first class flight on american to san francisco on the coming tuesday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 , fare_basis fare_basis_2 , days days_2 , date_day date_day_2 WHERE flight_1.airline_code = 'AA' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND fare_1.fare_basis_code = fare_basis_2.fare_basis_code AND fare_basis_2.basis_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 3 AND date_day_2.day_number = 22 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 , fare_basis fare_basis_2 , days days_2 , date_day date_day_2 WHERE flight_1.airline_code = 'AA' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'FIRST' AND fare_1.fare_basis_code = fare_basis_2.fare_basis_code AND fare_basis_2.basis_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 3 AND date_day_2.day_number = 22 ) ) )
+DIFF:
+  insert: gold[] -> pred[)]
+
+=== #151  record F1 = 0.500
+Q   : show me the list of flights from dallas to baltimore on american and delta airlines
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , airport_service airport_service_3 , city city_3 WHERE( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND flight_1.from_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'FORT WORTH' ) AND( flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'BALTIMORE' AND(( flight_1.airline_code = 'DL' AND 1 = 1 ) OR( flight_1.airline_code = 'AA' AND 1 = 1 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BALTIMORE' )
+DIFF:
+  replace: gold[, airport_service airport_service_3 , city city_3 WHERE(] -> pred[WHERE flight_1.airline_code = 'DL' AND(]
+  replace: gold[flight_1.from_airport] -> pred[flight_1.to_airport]
+  replace: gold['FORT WORTH'] -> pred['BALTIMORE']
+  delete: gold[AND( flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'BALTIMORE' AND(( flight_1.airline_code = 'DL' AND 1 = 1 ) OR( flight_1.airline_code = 'AA' AND 1 = 1 ) ) )] -> pred[]
+
+=== #156  record F1 = 0.000  ERROR: OperationalError: incomplete input
+Q   : i need an early flight from denver to san francisco please and i would like breakfast served on that
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , food_service food_service_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND( flight_1.meal_code = food_service_1.meal_code AND food_service_1.meal_description = 'BREAKFAST' AND( flight_1.departure_time >= 0 AND flight_1.departure_time <= 1000 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , food_service food_service_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND( flight_1.meal_code = food_service_1.meal_code AND food_service_1.meal_description = 'BREAKFAST' AND( flight_1.meal_code = 'BREAKFAST' AND( flight_1.meal_code = food_service_1.meal_code AND food_service_1.meal_description = 'BREAKFAST' AND( flight_1.meal_code = 'BREAKFAST' AND 1 = 1 ) ) ) )
+DIFF:
+  replace: gold[flight_1.departure_time >= 0] -> pred[flight_1.meal_code = 'BREAKFAST' AND( flight_1.meal_code = food_service_1.meal_code]
+  replace: gold[flight_1.departure_time <= 1000] -> pred[food_service_1.meal_description = 'BREAKFAST' AND( flight_1.meal_code = 'BREAKFAST' AND 1 = 1]
+  insert: gold[] -> pred[)]
+
+=== #160  record F1 = 0.500
+Q   : does flight ua 270 from denver to philadelphia have a meal
+GOLD: SELECT DISTINCT food_service_1.meal_code , food_service_1.meal_number , food_service_1.compartment FROM food_service food_service_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE food_service_1.meal_code = flight_1.meal_code AND flight_1.airline_code = 'UA' AND( flight_1.flight_number = 270 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' ) )
+PRED: SELECT DISTINCT food_service_1.meal_code , food_service_1.meal_number , food_service_1.compartment FROM food_service food_service_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE food_service_1.meal_code = flight_1.meal_code AND flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' AND flight_1.airline_code = 'UA' ) )
+DIFF:
+  delete: gold[flight_1.flight_number = 270 AND(] -> pred[]
+  replace: gold[AND] -> pred[AND(]
+  insert: gold[] -> pred[AND flight_1.airline_code = 'UA']
+
+=== #170  record F1 = 1.000  ERROR: OperationalError: no such column: airport_service_3.airport_code
+Q   : what is the fare on american airlines flight 928 from dallas fort worth to boston
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , airport_service airport_service_3 , city city_3 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'AA' AND(( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND flight_1.from_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'FORT WORTH' ) AND( flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'BOSTON' AND flight_1.flight_number = 928 ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'AA' AND(( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND flight_1.from_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'FORT WORTH' ) AND( flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'BOSTON' AND flight_1.flight_number = 928 ) )
+DIFF:
+  delete: gold[, airport_service airport_service_3 , city city_3] -> pred[]
+
+=== #171  record F1 = 0.000  ERROR: OperationalError: ambiguous column name: airport_service_1.miles_distant
+Q   : how far from the airport in the dallas fort worth airport is dallas
+GOLD: SELECT DISTINCT airport_service_1.miles_distant FROM airport_service airport_service_1 , city city_1 , airport airport_1 WHERE airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND airport_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = 'DFW'
+PRED: SELECT DISTINCT airport_service_1.miles_distant FROM airport_service airport_service_1 , airport airport_1 , airport_service airport_service_1 , city city_1 , city city_2 WHERE airport_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND airport_service_1.city_code = city_2.city_code AND city_2.city_name = 'FORT WORTH'
+DIFF:
+  insert: gold[] -> pred[airport airport_1 , airport_service airport_service_1 ,]
+  replace: gold[airport airport_1] -> pred[city city_2]
+  insert: gold[] -> pred[airport_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND]
+  replace: gold[airport_service_1.airport_code] -> pred[airport_service_1.city_code]
+  replace: gold[airport_1.airport_code] -> pred[city_2.city_code]
+  replace: gold[airport_1.airport_code] -> pred[city_2.city_name]
+  replace: gold['DFW'] -> pred['FORT WORTH']
+
+=== #175  record F1 = 0.867
+Q   : pm flights dallas to atlanta
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND( flight_1.departure_time >= 1200 AND flight_1.departure_time <= 2359 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND( flight_1.departure_time >= 1000 AND flight_1.departure_time <= 2359 ) )
+DIFF:
+  replace: gold[1200] -> pred[1000]
+
+=== #177  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : what flights arrive in chicago on sunday on continental
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'CO' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHICAGO' AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND NOT(( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'CO' AND( flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'CHICAGO' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 27 AND not(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) ) ) ) ) ) )
+DIFF:
+  insert: gold[] -> pred[, airport_service airport_service_2 , city city_2]
+  replace: gold[AND((] -> pred[AND(]
+  replace: gold[AND NOT(( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR] -> pred[AND((]
+  replace: gold[41 )] -> pred[flight_1.departure_time]
+  delete: gold[)] -> pred[]
+  replace: gold[AND( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR] -> pred[AND not((]
+  replace: gold[41 )] -> pred[flight_1.departure_time]
+  insert: gold[] -> pred[) ) ) ) )]
+
+=== #180  record F1 = 0.646
+Q   : show me the flights to and from love field
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 WHERE flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'DAL' OR flight_1.from_airport = airport_2.airport_code AND airport_2.airport_code = 'DAL'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 WHERE flight_1.from_airport = airport_1.airport_code AND airport_1.airport_code = 'DAL' OR flight_1.from_airport = airport_2.airport_code AND airport_2.airport_code = 'DAL'
+DIFF:
+  replace: gold[flight_1.to_airport] -> pred[flight_1.from_airport]
+
+=== #187  record F1 = 0.695
+Q   : show me all flights from new york to miami leaving on a tuesday and returning on sunday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 WHERE( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'NEW YORK' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'MIAMI' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'TUESDAY' ) ) OR( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'MIAMI' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'SUNDAY' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'NEW YORK' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'MIAMI' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'TUESDAY' )
+DIFF:
+  replace: gold[WHERE(] -> pred[WHERE]
+  delete: gold[) OR( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'MIAMI' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'SUNDAY' ) )] -> pred[]
+
+=== #190  record F1 = 0.000  ERROR: OperationalError: ambiguous column name: airport_1.airport_code
+Q   : what's the lowest round trip fare from atlanta to bwi
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport airport_1 WHERE fare_1.round_trip_cost =( SELECT MIN( fare_1.round_trip_cost ) FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport airport_1 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'BWI' ) AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'BWI'
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport airport_1 WHERE fare_1.round_trip_cost =( SELECT MIN( fare_1.round_trip_cost ) FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport airport_1 , airport airport_1 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'BWI' ) AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'BWI'
+DIFF:
+  insert: gold[] -> pred[, airport airport_1]
+
+=== #207  record F1 = 1.000  ERROR: OperationalError: no such column: flight_stop_2.flight_id
+Q   : i'd like to fly from san francisco to boston with a stopover in dallas fort worth and i want to fly on delta airlines
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 , flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4 WHERE flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_4.airport_code AND airport_service_4.city_code = city_4.city_code AND city_4.city_name = 'FORT WORTH' ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 WHERE flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'FORT WORTH' ) ) )
+DIFF:
+  delete: gold[, flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4] -> pred[]
+  replace: gold[airport_service_4.airport_code] -> pred[airport_service_3.airport_code]
+  replace: gold[airport_service_4.city_code] -> pred[airport_service_3.city_code]
+  replace: gold[city_4.city_code] -> pred[city_3.city_code]
+  replace: gold[city_4.city_name] -> pred[city_3.city_name]
+
+=== #208  record F1 = 0.377
+Q   : all flights from boston to washington dc after 5pm on november eleventh economy class
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 , fare_basis fare_basis_2 , days days_2 , date_day date_day_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 11 AND date_day_1.day_number = 11 AND( flight_1.departure_time > 1700 AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.economy = 'YES' AND fare_1.fare_basis_code = fare_basis_2.fare_basis_code AND fare_basis_2.basis_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 11 AND date_day_2.day_number = 11 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 , fare_basis fare_basis_2 , days days_2 , date_day date_day_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 11 AND date_day_1.day_number = 11 AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.economy = 'YES' AND fare_1.fare_basis_code = fare_basis_2.fare_basis_code AND fare_basis_2.basis_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 11 AND date_day_2.day_number = 11 ) )
+DIFF:
+  delete: gold[AND( flight_1.departure_time > 1700] -> pred[]
+  delete: gold[)] -> pred[]
+
+=== #211  record F1 = 0.000
+Q   : list flights from denver to san francisco no denver to philadelphia
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'PHILADELPHIA' )
+DIFF:
+  insert: gold[] -> pred[, flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3]
+  replace: gold[AND] -> pred[AND(]
+  insert: gold[] -> pred['SAN FRANCISCO' AND flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name =]
+  insert: gold[] -> pred[)]
+
+=== #214  record F1 = 0.000
+Q   : what is sa
+GOLD: SELECT DISTINCT days_1.day_name FROM days days_1 WHERE days_1.days_code = 'SA'
+PRED: SELECT DISTINCT airline_1.airline_code FROM airline airline_1 WHERE airline_1.airline_code = 'SA'
+DIFF:
+  replace: gold[days_1.day_name] -> pred[airline_1.airline_code]
+  replace: gold[days days_1] -> pred[airline airline_1]
+  replace: gold[days_1.days_code] -> pred[airline_1.airline_code]
+
+=== #216  record F1 = 0.000
+Q   : give me information on flights from atlanta to washington dc leaving on thursday before 0900
+GOLD: SELECT state_1.state_code FROM state state_1 WHERE state_1.state_code = 'ASD';
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND flight_1.departure_time < 900 ) )
+DIFF:
+  replace: gold[state_1.state_code] -> pred[DISTINCT flight_1.flight_id]
+  replace: gold[state state_1] -> pred[flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1]
+  replace: gold[state_1.state_code] -> pred[flight_1.from_airport]
+  replace: gold['ASD';] -> pred[airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND flight_1.departure_time < 900 ) )]
+
+=== #223  record F1 = 0.000
+Q   : what flights from atlanta to st. louis on tuesday arriving around 230pm
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ST. LOUIS' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND( flight_1.arrival_time >= 1400 AND flight_1.arrival_time <= 1500 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ST. LOUIS' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND( flight_1.arrival_time >= 1630 AND flight_1.arrival_time <= 1430 ) ) )
+DIFF:
+  replace: gold[1400] -> pred[1630]
+  replace: gold[1500] -> pred[1430]
+
+=== #227  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : on the 8am flight from san francisco to atlanta what type of aircraft is used
+GOLD: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 , equipment_sequence equipment_sequence_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND flight_1.departure_time = 800 )
+PRED: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 , equipment_sequence equipment_sequence_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND flight_1.departure_time = 800 ) )
+DIFF:
+  insert: gold[] -> pred[)]
+
+=== #230  record F1 = 0.250
+Q   : i'd like to find a nonstop flight from boston to atlanta that leaves sometime in the afternoon and arrives in atlanta before evening
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.stops = 0 AND( flight_1.departure_time BETWEEN 1200 AND 1800 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND flight_1.arrival_time < 1800 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND( flight_1.arrival_time <= 2200 AND flight_1.arrival_time <= 2200 ) ) )
+DIFF:
+  delete: gold[AND( flight_1.departure_time BETWEEN 1200 AND 1800] -> pred[]
+  insert: gold[] -> pred[AND( flight_1.arrival_time <= 2200]
+  replace: gold[< 1800] -> pred[<= 2200]
+
+=== #239  record F1 = 0.000
+Q   : i need to reverse the flight from pittsburgh to denver please
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER'
+DIFF:
+  replace: gold['DENVER'] -> pred['PITTSBURGH']
+  replace: gold['PITTSBURGH'] -> pred['DENVER']
+
+=== #242  record F1 = 0.000  ERROR: OperationalError: no such column: airport_service_3.airport_code
+Q   : show me the flights from philadelphia to dallas with one stop
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.stops = 1 )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' )
+DIFF:
+  insert: gold[] -> pred[, flight_stop flight_stop_1]
+  replace: gold[flight_1.stops] -> pred[flight_1.flight_id]
+  replace: gold[1] -> pred[flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS']
+
+=== #245  record F1 = 0.000
+Q   : round trip flights from minneapolis to san diego coach economy fare
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'MINNEAPOLIS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN DIEGO' AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.round_trip_cost IS NOT NULL AND( fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.class_type = 'COACH' AND 1 = 1 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_fare flight_fare_1 , fare fare_1 , fare_basis fare_basis_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'MINNEAPOLIS' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN DIEGO' AND flight_1.flight_id = flight_fare_1.flight_id AND flight_fare_1.fare_id = fare_1.fare_id AND fare_1.round_trip_cost IS NOT NULL AND fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.economy = 'COACH' AND 1 = 1 )
+DIFF:
+  replace: gold[AND(] -> pred[AND]
+  replace: gold[fare_basis_1.class_type] -> pred[fare_basis_1.economy]
+  delete: gold[)] -> pred[]
+
+=== #250  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : what are the fares for flights serving a meal from boston to pittsburgh before noon on thursday
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , food_service food_service_1 , days days_2 , date_day date_day_2 WHERE fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' AND( flight_1.meal_code = food_service_1.meal_code AND 1 = 1 AND( flight_1.flight_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 5 AND date_day_2.day_number = 24 AND flight_1.departure_time < 1200 ) ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , fare_basis fare_basis_1 , days days_1 , date_day date_day_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_2 , date_day date_day_2 WHERE fare_1.fare_basis_code = fare_basis_1.fare_basis_code AND fare_basis_1.basis_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' AND( flight_1.flight_days = days_2.days_code AND days_2.day_name = date_day_2.day_name AND date_day_2.year = 1991 AND date_day_2.month_number = 5 AND date_day_2.day_number = 24 AND flight_1.departure_time < 1200 ) ) )
+DIFF:
+  delete: gold[, food_service food_service_1] -> pred[]
+  delete: gold[flight_1.meal_code = food_service_1.meal_code AND 1 = 1 AND(] -> pred[]
+
+=== #253  record F1 = 0.000
+Q   : please give me the flight times the morning on united airlines for september twentieth from philadelphia to san francisco
+GOLD: SELECT DISTINCT flight_1.departure_time FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'UA' AND( flight_1.departure_time BETWEEN 0 AND 1200 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 9 AND date_day_1.day_number = 20 ) ) )
+PRED: SELECT DISTINCT flight_1.departure_time , flight_1.arrival_time FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.departure_time BETWEEN 0 AND 1200 AND( flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 9 AND date_day_1.day_number = 20 ) ) )
+DIFF:
+  insert: gold[] -> pred[, flight_1.arrival_time]
+  delete: gold[flight_1.airline_code = 'UA' AND(] -> pred[]
+  insert: gold[] -> pred[AND( flight_1.airline_code = 'UA']
+
+=== #255  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : yes i'm looking for a flight between oakland and boston with a stopover in dallas fort worth do you have one of those
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 , flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'OAKLAND' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_4.airport_code AND airport_service_4.city_code = city_4.city_code AND city_4.city_name = 'FORT WORTH' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 , flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'OAKLAND' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_4.airport_code AND airport_service_4.city_code = city_4.city_code AND city_4.city_name = 'FORT WORTH' ) ) )
+DIFF:
+  insert: gold[] -> pred[)]
+
+=== #259  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : could you tell me about flights from philadelphia to dallas that arrives in the early afternoon
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND( flight_1.arrival_time >= 1200 AND flight_1.arrival_time <= 1400 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND( flight_1.arrival_time >= 1200 AND flight_1.arrival_time <= 1400 ) ) )
+DIFF:
+  insert: gold[] -> pred[)]
+
+=== #270  record F1 = 0.000
+Q   : show me the flights on delta that go through atlanta
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , flight_stop flight_stop_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.airline_code = 'DL' AND flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.airline_code = 'DL' AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ATLANTA'
+DIFF:
+  delete: gold[, flight_stop flight_stop_1] -> pred[]
+  replace: gold[flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport] -> pred[flight_1.to_airport]
+
+=== #278  record F1 = 0.000
+Q   : what are the flights from kansas city to burbank on saturday may twenty two on america west
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'HP' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'KANSAS CITY' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BURBANK' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 7 AND date_day_1.day_number = 26 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'AA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'KANSAS CITY' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BURBANK' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 7 AND date_day_1.day_number = 26 ) )
+DIFF:
+  replace: gold['HP'] -> pred['AA']
+
+=== #284  record F1 = 0.000  ERROR: OperationalError: no such column: airline_1.airline_code
+Q   : show me the aircraft that canadian airlines uses
+GOLD: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 , equipment_sequence equipment_sequence_1 , flight flight_1 , airline airline_1 WHERE aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND flight_1.airline_code = airline_1.airline_code AND airline_1.airline_name LIKE '%CANADIAN AIRLINES%'
+PRED: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 , equipment_sequence equipment_sequence_1 , flight flight_1 WHERE aircraft_1.aircraft_code = equipment_sequence_1.aircraft_code AND equipment_sequence_1.aircraft_code_sequence = flight_1.aircraft_code_sequence AND flight_1.airline_code = airline_1.airline_code AND airline_1.airline_name LIKE '%CANADIAN AIRLINES%'
+DIFF:
+  delete: gold[, airline airline_1] -> pred[]
+
+=== #291  record F1 = 0.004
+Q   : show me the flights to love field from all other airports
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 WHERE flight_1.from_airport = airport_1.airport_code AND 1 = 1 AND flight_1.to_airport = airport_2.airport_code AND airport_2.airport_code = 'DAL'
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport airport_2 WHERE flight_1.from_airport = airport_1.airport_code AND 1 = 1 AND flight_1.to_airport = airport_2.airport_code AND 1 = 1 AND flight_1.to_airport = airport_2.airport_code AND 1 = 1
+DIFF:
+  insert: gold[] -> pred[1 = 1 AND flight_1.to_airport =]
+  insert: gold[] -> pred[AND 1]
+  replace: gold['DAL'] -> pred[1]
+
+=== #298  record F1 = 0.000
+Q   : thank you for that information now i would like to book a flight from philadelphia to boston on the night of april sixteen around 9 o'clock
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 4 AND date_day_1.day_number = 16 AND( flight_1.departure_time >= 2030 AND flight_1.departure_time <= 2130 ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHILADELPHIA' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND(( flight_1.departure_time >= 2130 AND flight_1.departure_time <= 2130 ) AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 4 AND date_day_1.day_number = 16 ) )
+DIFF:
+  replace: gold[AND(] -> pred[AND(( flight_1.departure_time >= 2130 AND flight_1.departure_time <= 2130 ) AND]
+  delete: gold[AND( flight_1.departure_time >= 2030 AND flight_1.departure_time <= 2130] -> pred[]
+  delete: gold[)] -> pred[]
+
+=== #301  record F1 = 0.000
+Q   : how many seats in a 734
+GOLD: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 WHERE aircraft_1.aircraft_code = '734'
+PRED: SELECT DISTINCT aircraft_1.aircraft_code FROM aircraft aircraft_1 WHERE aircraft_1.aircraft_code = '7334'
+DIFF:
+  replace: gold['734'] -> pred['7334']
+
+=== #305  record F1 = 0.000  ERROR: OperationalError: near ")": syntax error
+Q   : is twa flight 497766 from st. petersburg to milwaukee with one stop available tomorrow morning
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_leg flight_leg_1 , flight flight_2 , flight_leg flight_leg_2 , flight flight_3 , days days_1 , date_day date_day_1 WHERE flight_1.departure_time BETWEEN 0 AND 1200 AND( flight_1.airline_code = 'TW' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ST. PETERSBURG' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'MILWAUKEE' AND( flight_1.stops = 1 AND( flight_1.flight_id = flight_leg_1.flight_id AND flight_leg_1.leg_flight = flight_2.flight_id AND flight_2.flight_number = 497 AND( flight_1.flight_id = flight_leg_2.flight_id AND flight_leg_2.leg_flight = flight_3.flight_id AND flight_3.flight_number = 766 AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 ) ) ) ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.airline_code = 'TW' AND( flight_1.departure_time BETWEEN 0 AND 1200 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'ST. PETERSBURG' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'MILWAUKEE' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 1 AND date_day_1.day_number = 20 ) ) ) )
+DIFF:
+  delete: gold[flight_leg flight_leg_1 , flight flight_2 , flight_leg flight_leg_2 , flight flight_3 ,] -> pred[]
+  insert: gold[] -> pred[flight_1.airline_code = 'TW' AND(]
+  delete: gold[AND( flight_1.airline_code = 'TW'] -> pred[]
+  delete: gold[AND( flight_1.stops = 1 AND( flight_1.flight_id = flight_leg_1.flight_id AND flight_leg_1.leg_flight = flight_2.flight_id AND flight_2.flight_number = 497 AND( flight_1.flight_id = flight_leg_2.flight_id AND flight_leg_2.leg_flight = flight_3.flight_id AND flight_3.flight_number = 766] -> pred[]
+  delete: gold[) )] -> pred[]
+
+=== #307  record F1 = 0.000
+Q   : define airline us
+GOLD: SELECT DISTINCT airline_1.airline_code , airline_1.airline_name , airline_1.note FROM airline airline_1 WHERE airline_1.airline_code = 'US'
+PRED: SELECT DISTINCT airline_1.airline_code FROM airline airline_1 WHERE airline_1.airline_code = 'US'
+DIFF:
+  delete: gold[, airline_1.airline_name , airline_1.note] -> pred[]
+
+=== #310  record F1 = 0.000
+Q   : is there any flight leaving washington around 3 o'clock for denver
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND( flight_1.departure_time >= 1430 AND flight_1.departure_time <= 1530 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'WASHINGTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND( flight_1.departure_time >= 1630 AND flight_1.departure_time <= 1530 ) )
+DIFF:
+  replace: gold[1430] -> pred[1630]
+
+=== #314  record F1 = 0.714
+Q   : what are the flights from pittsburgh to denver and back
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' ) OR( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER'
+DIFF:
+  replace: gold[WHERE(] -> pred[WHERE]
+  delete: gold[) OR( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PITTSBURGH' )] -> pred[]
+
+=== #326  record F1 = 0.000
+Q   : i would like an afternoon flight from denver colorado to dallas texas
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , state state_1 , airport_service airport_service_2 , city city_2 , state state_2 WHERE flight_1.departure_time BETWEEN 1200 AND 1800 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND city_1.state_code = state_1.state_code AND state_1.state_name = 'COLORADO' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND city_2.state_code = state_2.state_code AND state_2.state_name = 'TEXAS' )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , state state_1 WHERE flight_1.departure_time BETWEEN 1200 AND 1800 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND city_2.state_code = state_1.state_code AND state_1.state_name = 'TX' )
+DIFF:
+  delete: gold[state state_1 ,] -> pred[]
+  replace: gold[state_2] -> pred[state_1]
+  delete: gold[city_1.state_code = state_1.state_code AND state_1.state_name = 'COLORADO' AND] -> pred[]
+  replace: gold[state_2.state_code] -> pred[state_1.state_code]
+  replace: gold[state_2.state_name] -> pred[state_1.state_name]
+  replace: gold['TEXAS'] -> pred['TX']
+
+=== #340  record F1 = 0.000
+Q   : please list all flights from denver to philadelphia two saturdays from now
+GOLD: SELECT state_1.state_code FROM state state_1 WHERE state_1.state_code = 'ASD';
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'SATURDAY' )
+DIFF:
+  replace: gold[state_1.state_code] -> pred[DISTINCT flight_1.flight_id]
+  replace: gold[state state_1] -> pred[flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1]
+  replace: gold[state_1.state_code] -> pred[flight_1.from_airport]
+  replace: gold['ASD';] -> pred[airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = 'SATURDAY' )]
+
+=== #362  record F1 = 0.000
+Q   : how long does it take to get from kansas city to st. paul
+GOLD: SELECT DISTINCT flight_1.time_elapsed FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'KANSAS CITY' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ST. PAUL'
+PRED: SELECT DISTINCT airport_service_1.minutes_distant FROM airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'KANSAS CITY' AND airport_service_1.airport_code = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ST. PAUL'
+DIFF:
+  replace: gold[flight_1.time_elapsed] -> pred[airport_service_1.minutes_distant]
+  delete: gold[flight flight_1 ,] -> pred[]
+  delete: gold[flight_1.from_airport = airport_service_1.airport_code AND] -> pred[]
+  replace: gold[flight_1.to_airport] -> pred[airport_service_1.airport_code]
+
+=== #369  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : list nonstop flights from baltimore washington airport to oakland that depart in the afternoon
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport airport_1 , airport_service airport_service_1 , city city_1 WHERE flight_1.stops = 0 AND( flight_1.departure_time BETWEEN 1200 AND 1800 AND( flight_1.from_airport = airport_1.airport_code AND airport_1.airport_code = 'BWI' AND flight_1.to_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'OAKLAND' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport airport_1 , airport_service airport_service_2 , city city_2 , state state_1 WHERE flight_1.stops = 0 AND( flight_1.departure_time BETWEEN 1200 AND 1800 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND city_1.state_code = state_1.state_code AND state_1.state_name = 'WASHINGTON' AND( flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code = 'OAKLAND' AND flight_1.departure_time BETWEEN 1200 AND 1800 AND 1 = 1 ) ) ) )
+DIFF:
+  delete: gold[airport airport_1 ,] -> pred[]
+  insert: gold[] -> pred[, airport airport_1 , airport_service airport_service_2 , city city_2 , state state_1]
+  delete: gold[airport_1.airport_code AND airport_1.airport_code = 'BWI' AND flight_1.to_airport =] -> pred[]
+  insert: gold[] -> pred['BALTIMORE' AND city_1.state_code = state_1.state_code AND state_1.state_name = 'WASHINGTON' AND( flight_1.to_airport = airport_1.airport_code AND airport_1.airport_code =]
+  insert: gold[] -> pred[AND flight_1.departure_time BETWEEN 1200 AND 1800 AND 1 = 1]
+  insert: gold[] -> pred[) )]
+
+=== #372  record F1 = 1.000  ERROR: OperationalError: no such column: flight_stop_2.flight_id
+Q   : is there a flight between san francisco and boston with a stopover in dallas fort worth
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 , flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_4.airport_code AND airport_service_4.city_code = city_4.city_code AND city_4.city_name = 'FORT WORTH' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , flight_stop flight_stop_1 , airport_service airport_service_3 , city city_3 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'BOSTON' AND( flight_1.flight_id = flight_stop_1.flight_id AND flight_stop_1.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'DALLAS' AND flight_1.flight_id = flight_stop_2.flight_id AND flight_stop_2.stop_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'FORT WORTH' ) )
+DIFF:
+  delete: gold[, flight_stop flight_stop_2 , airport_service airport_service_4 , city city_4] -> pred[]
+  replace: gold[airport_service_4.airport_code] -> pred[airport_service_3.airport_code]
+  replace: gold[airport_service_4.city_code] -> pred[airport_service_3.city_code]
+  replace: gold[city_4.city_code] -> pred[city_3.city_code]
+  replace: gold[city_4.city_name] -> pred[city_3.city_name]
+
+=== #388  record F1 = 0.885
+Q   : show me all the flights out of boston today
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 6 AND date_day_1.day_number = 13
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 6 AND date_day_1.day_number = 29
+DIFF:
+  replace: gold[13] -> pred[29]
+
+=== #395  record F1 = 0.316
+Q   : my question is i want to go to san francisco and i live in denver and i would like to fly on united airlines do you have an early flight
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND flight_1.departure_time <= 1000 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'UA' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DENVER' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' )
+DIFF:
+  replace: gold[AND(] -> pred[AND]
+  delete: gold[AND flight_1.departure_time <= 1000] -> pred[]
+  delete: gold[)] -> pred[]
+
+=== #402  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : what is a flight that goes from baltimore to san francisco and arrives at san francisco at 8pm on a friday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND( flight_1.arrival_time = 2000 AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = 'FRIDAY' AND NOT(( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = 'THURSDAY' AND( flight_1.departure_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BALTIMORE' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'SAN FRANCISCO' AND( flight_1.arrival_time = 2000 AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = 'FRIDAY' AND( flight_1.departure_time = 2000 AND( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = 'SATURDAY' AND( flight_1.arrival_time > flight_1.arrival_time AND( flight_1.time_elapsed >= 60 OR flight_1.arrival_time < 41 ) AND 1 = 1 ) ) ) ) ) ) )
+DIFF:
+  replace: gold[AND NOT((] -> pred[AND(]
+  replace: gold[> flight_1.arrival_time] -> pred[= 2000]
+  delete: gold[flight_1.time_elapsed >= 60 OR] -> pred[]
+  replace: gold[41 )] -> pred[flight_1.departure_time]
+  delete: gold[)] -> pred[]
+  replace: gold['THURSDAY'] -> pred['SATURDAY']
+  replace: gold[flight_1.departure_time] -> pred[flight_1.arrival_time]
+  insert: gold[] -> pred[) )]
+
+=== #414  record F1 = 0.667
+Q   : how far is downtown from the airport in dallas
+GOLD: SELECT DISTINCT airport_service_1.miles_distant FROM airport_service airport_service_1 , airport airport_1 , airport_service airport_service_2 , city city_1 , city city_2 WHERE airport_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_2.airport_code AND airport_service_2.city_code = city_1.city_code AND city_1.city_name = 'DALLAS' AND airport_service_1.city_code = city_2.city_code AND city_2.city_name = 'DALLAS'
+PRED: SELECT DISTINCT airport_service_1.miles_distant FROM airport_service airport_service_1 , airport airport_1 , city city_1 WHERE airport_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = 'DFW' AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'DALLAS'
+DIFF:
+  delete: gold[airport_service airport_service_2 ,] -> pred[]
+  delete: gold[, city city_2] -> pred[]
+  replace: gold[airport_service_2.airport_code] -> pred['DFW']
+  replace: gold[airport_service_2.city_code] -> pred[airport_service_1.city_code]
+  delete: gold[AND airport_service_1.city_code = city_2.city_code AND city_2.city_name = 'DALLAS'] -> pred[]
+
+=== #416  record F1 = 1.000  ERROR: OperationalError: near ")": syntax error
+Q   : what is the fare from san francisco to dallas fort worth on delta flight 852
+GOLD: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , airport_service airport_service_3 , city city_3 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND(( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'FORT WORTH' ) AND flight_1.flight_number = 852 ) )
+PRED: SELECT DISTINCT fare_1.fare_id FROM fare fare_1 , flight_fare flight_fare_1 , flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , airport_service airport_service_3 , city city_3 WHERE fare_1.fare_id = flight_fare_1.fare_id AND flight_fare_1.flight_id = flight_1.flight_id AND flight_1.airline_code = 'DL' AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DALLAS' AND flight_1.to_airport = airport_service_3.airport_code AND airport_service_3.city_code = city_3.city_code AND city_3.city_name = 'FORT WORTH' ) ) )
+DIFF:
+  replace: gold[AND((] -> pred[AND(]
+  delete: gold[AND flight_1.flight_number = 852] -> pred[]
+
+=== #417  record F1 = 0.000
+Q   : all flights from pittsburgh to philadelphia next tuesday arriving near 6 o'clock
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' AND(( flight_1.arrival_time >= 1730 AND flight_1.arrival_time <= 1830 ) AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND NOT(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) OR( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'PITTSBURGH' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'PHILADELPHIA' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND( flight_1.arrival_time >= 1830 AND flight_1.arrival_time <= 1830 ) ) )
+DIFF:
+  replace: gold[AND(( flight_1.arrival_time >= 1730 AND flight_1.arrival_time <= 1830 ) AND(( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 3 AND date_day_1.day_number = 22 AND NOT(( flight_1.arrival_time < flight_1.departure_time AND 1 = 1 ) ) ) OR(] -> pred[AND(]
+  replace: gold[< flight_1.departure_time] -> pred[>= 1830]
+  replace: gold[1 = 1] -> pred[flight_1.arrival_time <= 1830]
+  delete: gold[) )] -> pred[]
+
+=== #427  record F1 = 0.500
+Q   : is there a continental flight leaving from las vegas to new york nonstop
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.airline_code = 'CO' AND( flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.stops = 0 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'LAS VEGAS' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'NEW YORK' )
+DIFF:
+  delete: gold[flight_1.airline_code = 'CO' AND(] -> pred[]
+  delete: gold[)] -> pred[]
+
+=== #428  record F1 = 0.000
+Q   : list all flights from boston to atlanta before 5 o'clock am on thursday
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND flight_1.departure_time < 500 ) )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'ATLANTA' AND( flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 5 AND date_day_1.day_number = 24 AND flight_1.departure_time < 1700 ) )
+DIFF:
+  replace: gold[500] -> pred[1700]
+
+=== #440  record F1 = 0.936
+Q   : what flights are available from boston to denver today
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 8 AND date_day_1.day_number = 1 )
+PRED: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 , days days_1 , date_day date_day_1 WHERE flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'BOSTON' AND( flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'DENVER' AND flight_1.flight_days = days_1.days_code AND days_1.day_name = date_day_1.day_name AND date_day_1.year = 1991 AND date_day_1.month_number = 6 AND date_day_1.day_number = 29 )
+DIFF:
+  replace: gold[8] -> pred[6]
+  replace: gold[1] -> pred[29]
+
+=== #458  record F1 = 0.000  ERROR: OperationalError: interrupted
+Q   : i would like the evening schedule of flights from san francisco to washington
+GOLD: SELECT DISTINCT flight_1.flight_id FROM flight flight_1 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.departure_time BETWEEN 1800 AND 2200 AND( flight_1.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND flight_1.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' )
+PRED: SELECT DISTINCT flight_1.departure_time , flight_1.arrival_time FROM flight flight_1 , flight_leg flight_leg_1 , flight flight_2 , airport_service airport_service_1 , city city_1 , airport_service airport_service_2 , city city_2 WHERE flight_1.departure_time BETWEEN 1800 AND 2200 AND( flight_2.from_airport = airport_service_1.airport_code AND airport_service_1.city_code = city_1.city_code AND city_1.city_name = 'SAN FRANCISCO' AND flight_2.to_airport = airport_service_2.airport_code AND airport_service_2.city_code = city_2.city_code AND city_2.city_name = 'WASHINGTON' )
+DIFF:
+  replace: gold[flight_1.flight_id] -> pred[flight_1.departure_time , flight_1.arrival_time]
+  insert: gold[] -> pred[, flight_leg flight_leg_1 , flight flight_2]
+  replace: gold[flight_1.from_airport] -> pred[flight_2.from_airport]
+  replace: gold[flight_1.to_airport] -> pred[flight_2.to_airport]
+
+=== #460  record F1 = 0.000
+Q   : is there ground transportation from the airport to downtown phoenix
+GOLD: SELECT DISTINCT ground_service_1.transport_type FROM ground_service ground_service_1 , city city_1 , airport airport_1 , airport_service airport_service_1 , city city_2 WHERE ground_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHOENIX' AND ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = airport_service_1.airport_code AND airport_service_1.city_code = city_2.city_code AND city_2.city_name = 'PHOENIX'
+PRED: SELECT DISTINCT ground_service_1.transport_type FROM ground_service ground_service_1 , airport airport_1 , city city_1 WHERE ground_service_1.airport_code = airport_1.airport_code AND airport_1.airport_code = 'PHOENIX'
+DIFF:
+  delete: gold[city city_1 ,] -> pred[]
+  delete: gold[airport_service airport_service_1 ,] -> pred[]
+  replace: gold[city_2] -> pred[city_1]
+  delete: gold[ground_service_1.city_code = city_1.city_code AND city_1.city_name = 'PHOENIX' AND] -> pred[]
+  delete: gold[airport_service_1.airport_code AND airport_service_1.city_code = city_2.city_code AND city_2.city_name =] -> pred[]
+
