@@ -44,8 +44,11 @@ Accuracy on the full IMDB test set (25,000 reviews): **93.12%** (out_original.tx
 """),
 
     ("Q2(a). The transformation",
-     "Describe your transformation in enough detail that someone could reimplement it, and explain "
-     "why it is a reasonable transformation that could plausibly show up in real user input.", """
+     "Design a transformation of the dataset, and explain the details of what it does. You should "
+     "describe it clearly, such that someone who reads the description can reimplement it. You should "
+     "also include why that is a “reasonable” transformation, i.e., something which could potentially "
+     "be an input at test time from a user. If you like, you can use LLMs to perform the data "
+     "transformation.", """
 I combined two things people actually do when they write reviews: using a different word for the same thing, and hitting the wrong key.
 
 The review is split into words with NLTK's `word_tokenize` and joined back with `TreebankWordDetokenizer`. A word is only eligible if it is all letters and longer than 3 characters. That leaves punctuation, numbers and short words alone, including "not", "no" and "bad", so the sentiment can't get flipped by accident. Every eligible word then goes through two independent steps:
@@ -72,10 +75,15 @@ The same model from Q1 gets 87.86% on the transformed test set vs 93.12% on the 
 ]
 
 PART1_Q3 = ("Q3. Data augmentation",
-    "Train on the original training set plus 5,000 transformed training examples. Report accuracy on the "
-    "original and transformed test sets. (1) Did transformed-test accuracy improve? (2) What happened on "
-    "the original test set? Give an intuitive explanation, and one limitation of this approach for "
-    "out-of-distribution data.", """
+    "Evaluate the performance of the model trained above. Your objective is to assess how data "
+    "augmentation affects the model’s ability to handle both original and transformed test data. "
+    "Report the accuracy values for both the original and transformed test data evaluations. Analyze "
+    "and discuss: (1) Did the model’s performance on the transformed test data improve after applying "
+    "data augmentation? (2) How did data augmentation affect the model’s performance on the original "
+    "test data? Did it enhance or diminish its accuracy? Offer an intuitive explanation for the observed "
+    "results, considering the impact of data augmentation on model training. Explain one limitation of "
+    "the data augmentation approach used here to improve performance on out-of-distribution (OOD) test "
+    "sets.", """
 I took 5,000 random training reviews (seed 42), ran them through the transformation from Q2(a) and added them to the full 25,000-review training set, so 30,000 examples in total. Then I trained a new model with the same settings as Q1.
 
 | Model | Original test | Transformed test |
@@ -93,8 +101,9 @@ Limitation: it only helps with the shift I trained on. The 5,000 extra reviews o
 
 PART2 = [
     ("Q4. Data statistics",
-     "Table 1: statistics before pre-processing (train and dev). Table 2: statistics after "
-     "pre-processing, with the model name.", """
+     "Describe the data statistics before and after any pre-processing by filling in Table 1 and "
+     "Table 2. Use the T5 tokenizer to report the statistics. Depending on your pre-processing, some "
+     "numbers may be identical across tables.", """
 Everything is measured with the google-t5/t5-small tokenizer. Lengths are in tokens, and vocabulary size is the number of different token ids that show up. "Before" is the raw text with no `</s>`. "After" is exactly what the model sees: `</s>` added at the end and `<` swapped for `LT` in the SQL (see Q5).
 
 **Table 1. Before pre-processing**
@@ -119,8 +128,9 @@ The lengths go up by exactly 1 because of the `</s>`. The more important change 
 """),
 
     ("Q5. T5 fine-tuning details",
-     "Table 3: describe your data processing, tokenization, architecture (which parts you fine-tuned) "
-     "and hyperparameters in enough detail to replicate the setup.", """
+     "Use Table 3 to describe your data processing steps (if any) and implementation details for the "
+     "fine-tuned T5 model. Be clear enough that one can replicate your approach in PyTorch using only "
+     "your descriptions.", """
 **Table 3. Best T5 fine-tuning setup**
 
 | Design choice | Description |
@@ -133,8 +143,12 @@ I didn't train a version without the `LT` swap, so I'm not claiming it raises th
 """),
 
     ("Q6. Results and error analysis",
-     "Table 4: dev and test results for your final model and the variants you tried. Table 5: at least "
-     "three types of errors, each with an example, a description and a count.", """
+     "Quantitative results: Use Table 4 to report your test and development set results. Your test "
+     "results should match the results on the leaderboard. For the development set, also report results "
+     "from experiments you conducted to arrive at your final configuration. Qualitative error analysis: "
+     "Conduct a detailed error analysis for your model. Identify common error types and discuss possible "
+     "reasons for these errors in Table 5. You must identify at least three classes of errors for the "
+     "queries, and use examples to illustrate them.", """
 **Table 4. Results**
 
 | Run | Split | Query EM | Record F1 |
@@ -143,16 +157,18 @@ I didn't train a version without the `LT` swap, so I'm not claiming it raises th
 | lr 3e-4, up to 20 epochs | Dev | 61.80 | 79.90 |
 | Final model (lr 1e-3) | Test | 0.00 | 81.79 |
 
+Record EM for the final model is 85.62 on dev (399/466) and 79.40 on test.
+
 lr 1e-3 did best, with 88.02 dev F1 vs 79.90 for lr 3e-4 (about 8 points higher), so it's my final model. lr 3e-4 learned more slowly right from the start: its dev F1 after the first three epochs was 0.16 / 0.37 / 0.49, vs 0.33 / 0.55 / 0.65 for lr 1e-3. It also plateaued lower. From epoch 12 on it stayed between 0.77 and 0.80, its best dev F1 (0.799) was at epoch 14, and after 5 more epochs with no improvement, early stopping (patience 5) ended it after epoch 19, one short of the 20-epoch budget. So more epochs probably wouldn't have closed the gap. One epoch (32.88 F1) was nowhere near enough training: the model hadn't learned the long, very regular SQL patterns yet.
 
 **Table 5. Error analysis on the dev set (best run, lr 1e-3)**
 
-| Error type | Example | Description | Count |
-| SQL execution error | #138 "flights on continental leaving seattle on sunday after 430pm": the prediction matches the gold query exactly but ends with `... > 1630 ) ) )`, one `)` too many | The query doesn't run. 20 have unbalanced parentheses (`near ")"` or `incomplete input`), 8 use a table alias that isn't in FROM or an ambiguous column, and 1 timed out. 11 of these still scored F1 = 1.0 because the gold query returns no rows either. | 29/466 |
-| Wrong structure or SELECT target | #20 "give me the flight times ... from boston to baltimore in the morning before 8": gold `SELECT DISTINCT flight_1.departure_time`, predicted `SELECT DISTINCT flight_1.departure_time , flight_1.arrival_time` | The filters are fine but the query asks for the wrong thing: an extra or missing SELECT column, the wrong table (airline instead of airport for "what does iah mean"), or a wrong join. | 19/466 |
-| Wrong constant | #70 "nonstop flights from las vegas to new york on america west": gold `airline_code = 'HP'`, predicted `airline_code = 'AA'` | Same structure as the gold query but one value is wrong: an airline code, a date or a time. Time windows for "around N o'clock" are often off by an hour or collapse to one point (`>= 2130 AND <= 2130`). | 16/466 |
-| Missing or extra condition | #427 "is there a continental flight leaving from las vegas to new york nonstop": the prediction drops `flight_1.airline_code = 'CO' AND(` | A condition from the question gets dropped (airline, time of day, the return leg of a round trip) or one gets added that wasn't asked for (an extra destination). | 12/466 |
-| Gold label is wrong | #216 "flights from atlanta to washington dc leaving on thursday before 0900": the gold query is `SELECT state_1.state_code FROM state state_1 WHERE state_1.state_code = 'ASD';` | The gold query has nothing to do with the question, so a reasonable prediction still scores 0. Same for #340. #3 scores 1.0 only because its failed prediction and the bogus gold query both return no rows. | 3/466 |
+| Error type | Example | Description | Statistics |
+| SQL execution error | #138 "flights on continental leaving seattle on sunday after 430pm": the prediction matches the gold query exactly but ends with `... > 1630 ) ) )`, one `)` too many | The query doesn't run. 20 have unbalanced parentheses (`near ")"` or `incomplete input`), 8 use a table alias that isn't in FROM or an ambiguous column, and 1 timed out. 11 of these still scored F1 = 1.0 because the gold query returns no rows either. Likely reason: gold queries nest up to 8 levels of parentheses and can end with 7 `)` in a row, and the model has no explicit way to count them, so being off by one breaks the query. The FROM list is also written before WHERE, so the model has to commit to its tables before it knows which ones the conditions will use. | 29/466 |
+| Wrong structure or SELECT target | #20 "give me the flight times ... from boston to baltimore in the morning before 8": gold `SELECT DISTINCT flight_1.departure_time`, predicted `SELECT DISTINCT flight_1.departure_time , flight_1.arrival_time` | The filters are fine but the query asks for the wrong thing: an extra or missing SELECT column, the wrong table (airline instead of airport for "what does iah mean"), or a wrong join. Likely reason: some questions are ambiguous ("flight times" could mean departure or arrival), and 73% of training queries are plain flight searches (`SELECT DISTINCT flight_1.flight_id`), so the model leans toward that pattern for less common question types. | 19/466 |
+| Wrong constant | #70 "nonstop flights from las vegas to new york on america west": gold `airline_code = 'HP'`, predicted `airline_code = 'AA'` | Same structure as the gold query but one value is wrong: an airline code, a date or a time. Time windows for "around N o'clock" are often off by an hour or collapse to one point (`>= 2130 AND <= 2130`). Likely reason: rare names lose to common ones. "america west" is in only 1 training question while "american" is in 135, and `HP` shows up in 8 training queries vs 136 for `AA`. Times like "around 4 o'clock" also need a window around the hour, which is arithmetic the model can only copy from patterns. | 16/466 |
+| Missing or extra condition | #427 "is there a continental flight leaving from las vegas to new york nonstop": the prediction drops `flight_1.airline_code = 'CO' AND(` | A condition from the question gets dropped (airline, time of day, the return leg of a round trip) or one gets added that wasn't asked for (an extra destination). Likely reason: the SQL targets average about 216 tokens and most of that is the same city/airport join pattern, so a condition mentioned once in the question is easy to lose, and an extra one gets added when the question looks like the common "from X to Y" pattern. | 12/466 |
+| Gold label is wrong | #216 "flights from atlanta to washington dc leaving on thursday before 0900": the gold query is `SELECT state_1.state_code FROM state state_1 WHERE state_1.state_code = 'ASD';` | The gold query has nothing to do with the question, so a reasonable prediction still scores 0. Same for #340. #3 scores 1.0 only because its failed prediction and the bogus gold query both return no rows. Likely reason: annotation noise in the dataset (these gold queries look like a placeholder), not a model problem. | 3/466 |
 
 These rows cover all 78 dev examples my model got wrong: the 67 whose records don't match the gold records (F1 below 1), plus the 11 SQL errors that still scored 1.0 because both queries return no rows. Each example has one type, except #3, which has a wrong gold query and also failed to run, so it's counted in both the first and the last row (29 + 19 + 16 + 12 + 3 = 79).
 """),
@@ -191,7 +207,7 @@ def markdown_to_flowables(md, body, small):
             if ncol == 2:
                 widths = [110, 386]
             elif rows[0][0] == "Error type":
-                widths = [82, 200, 164, 50]
+                widths = [70, 160, 210, 56]
             else:
                 widths = None
             t = Table(data, hAlign="LEFT", repeatRows=1, colWidths=widths)
