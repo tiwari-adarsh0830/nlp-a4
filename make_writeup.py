@@ -31,6 +31,8 @@ TOP = """
 
 **Q7 checkpoint (Google Drive):** https://drive.google.com/drive/folders/1bS8lZic_Odo5EUVBgQHK5arLovloeYBp
 
+**Extra credit checkpoint (Google Drive):** https://drive.google.com/drive/folders/1eJX8LA7pH_6uTO2PIyCwYPtuDuIrxh7G
+
 **Discussed with:** Sheetal
 
 **AI use:** I used Claude Code as a coding assistant to write and debug much of the code in both parts and to help draft this writeup. I ran all the experiments on Torch myself and checked the code, results and writeup.
@@ -178,6 +180,67 @@ My test predictions are in submission/t5_ft_experiment_test.sql and submission/t
 """),
 ]
 
+EC = [
+    ("EC. Training T5 from scratch",
+     "In this optional task, you will train the exact same architecture from scratch (i.e., from randomly "
+     "initialized weights). Describe your new model in the report (i.e., make a new version of Table 1–Table 5 "
+     "with your new model and clearly label them). To receive the extra credit, you should achieve ≥ 50 F1 with "
+     "this model on the hidden test set, along with valid descriptions.", """
+This model uses the same T5-small architecture and the same code as Part 2, but it starts from random weights: it is built from the `google-t5/t5-small` config with no pretrained checkpoint (the run leaves out `--finetune`). My submission files for it are submission/ec_out/t5_ft_experiment_ec_test.sql and .pkl.
+
+**Table EC-1. Data statistics before pre-processing (T5 from scratch)**
+
+| Statistic | Train | Dev |
+| Number of examples | 4,225 | 466 |
+| Mean sentence length | 17.10 | 17.07 |
+| Mean SQL query length | 216.37 | 210.05 |
+| Vocabulary size (natural language) | 791 | 465 |
+| Vocabulary size (SQL) | 555 | 395 |
+
+**Table EC-2. Data statistics after pre-processing (T5 from scratch)**
+
+| Statistic | Train | Dev |
+| Model name | T5 from scratch (t5-small config) | T5 from scratch (t5-small config) |
+| Mean sentence length | 18.10 | 18.07 |
+| Mean SQL query length | 217.37 | 211.05 |
+| Vocabulary size (natural language) | 792 | 466 |
+| Vocabulary size (SQL) | 556 | 396 |
+
+The data, tokenizer and pre-processing are the same as for the fine-tuned model, so these numbers match Tables 1 and 2.
+
+**Table EC-3. T5 from scratch setup**
+
+| Design choice | Description |
+| Data processing | Same as Table 3: questions used as they are, and every < in the SQL replaced by LT before tokenizing and turned back into < after decoding. |
+| Tokenization | Same as Table 3: google-t5/t5-small tokenizer for encoder and decoder, <extra_id_0> as the decoder start token, dynamic padding with 0, padded targets left out of the loss, greedy decoding with at most 600 new tokens. |
+| Architecture | The T5-small architecture (60.5M parameters) with randomly initialized weights from the google-t5/t5-small config. All parameters are trained and nothing is frozen. |
+| Hyperparameters | AdamW with learning rate 1e-4, weight decay 0, batch size 16, cosine schedule with 2 warmup epochs over a planned 80 epochs, and patience 80, so early stopping never triggers. The checkpoint with the best dev record F1 is kept. The cluster cancelled the job after 45 epochs, so the final model is the best checkpoint at that point (epoch 45, counting from 1), and I produced its dev and test outputs with a separate inference-only run. |
+
+**Table EC-4. Results (T5 from scratch)**
+
+| Run | Split | Query EM | Record F1 |
+| lr 1e-3, 80 epochs | Dev | 0.00 | 11.80 |
+| lr 3e-4 (cancelled after 36 epochs, best at epoch 34) | Dev | 38.20 | 56.49 |
+| Full model: lr 1e-4 (cancelled after 45 epochs) | Dev | 51.29 | 67.00 |
+| Full model: lr 1e-4 | Test | 0.00 | 58.11 |
+
+Record EM for the from-scratch model is 64.38 on dev (300/466) and 55.09 on test. 26 of the 466 dev queries (5.58%) and 32 of the 432 test queries raised SQL errors. Test record F1 is 58.11 on Gradescope, above the 50 needed for extra credit, and test query EM shows 0.00 for the same exact-match reason as in Q7.
+
+lr 1e-4 worked best. With lr 1e-3, training broke down. The train loss dropped from 2.37 to 0.61 by the second epoch, but then it went back up and was still 0.89 after 80 epochs. The generated queries got stuck repeating the same tokens (e.g. `airport_service airport_service airport_service ...`), so dev F1 was only 11.80. With random weights there is no good starting point, so big updates push the model into a bad state that it doesn't recover from. The pretrained model in Q5 already starts close to a good solution, which is why 1e-3 was fine there. lr 3e-4 did learn, but its best dev F1 was 56.49 (epoch 34) when the job was cancelled, while 1e-4 reached 67.00 (epoch 45). The from-scratch model is still clearly worse than the fine-tuned one: 67.00 vs 88.02 dev F1 and 58.11 vs 81.79 test F1. The biggest single difference is word order. It swaps the origin and destination cities in 91 of the 360 dev queries that have both, compared with 1 for the fine-tuned model (Table EC-5).
+
+**Table EC-5. Error analysis on the dev set (T5 from scratch, lr 1e-4)**
+
+| Error type | Example | Description | Statistics |
+| Origin and destination swapped | #9 "show me the flights from baltimore to atlanta": gold `city_1.city_name = 'BALTIMORE'` ... `city_2.city_name = 'ATLANTA'`, predicted the same query with `'ATLANTA'` and `'BALTIMORE'` swapped | The query has the right structure and the right cities but goes the wrong way, so it returns different flights (84 of these score F1 = 0). In 66 of them the swapped city names are the only difference from the gold query. I count a swap when the city in the first `from_airport = airport_service_1.airport_code ... city_1.city_name` join equals the gold destination and the city in the first `to_airport = airport_service_2.airport_code ... city_2.city_name` join equals the gold origin. The same rule gives the 91/360 and 1/360 counts in the paragraph above and the training-pair counts below. Likely reason: 2,788 of the 3,363 training queries with a from/to city pair (83%) also have the reverse pair in training, so the cities alone don't tell the model which one comes first, and it has to use the order of "from" and "to" in the question. The pretrained model already knows how to copy words from the input in order and made this mistake only once, while the model trained from scratch has to learn it from 4,225 examples. | 87/466 |
+| SQL execution error | #63 "us air flights departing from charlotte around 1pm": the prediction opens 3 parentheses but closes only 2 (`incomplete input`) | The query doesn't run. 11 have unbalanced parentheses, 6 use a table or alias that isn't in FROM (e.g. `no such column: airport_service_3.airport_code`), and the other 9 are syntax errors, 5 of them broken quotes such as `unrecognized token: "8DENVER"`. 8 still scored F1 = 1.0 because the gold query returns no rows either. Likely reason: the same as for the fine-tuned model (long nested queries need exact bracket counting, and FROM is written before WHERE). Here the model also has no pretrained idea of how quotes and brackets pair up. | 26/466 |
+| Missing, extra or wrong condition | #21 "list all flights from boston to san francisco with the maximum number of stops": gold uses `flight_1.stops =( SELECT MAX( stops ) ...`, predicted a stop in Denver (`city_3.city_name = 'DENVER'`) | The SELECT clause is right, but a condition is dropped, added or replaced by a different one: the max-stops subquery, a time window, an airline or a meal. Likely reason: question types like superlatives, stops and meals appear only a few times in training, so without pretraining the model falls back on a condition it has seen more often. | 36/466 |
+| Wrong SELECT target | #58 "what are the costs of flights from dallas to boston tomorrow": gold `SELECT DISTINCT fare_1.fare_id`, predicted `SELECT DISTINCT flight_1.flight_id` | The query asks for the wrong thing: flights instead of fares or the other way round, transport type instead of fare, or one column instead of two. 3 of these (#216, #297, #340) have the bogus `SELECT state_1.state_code ... 'ASD'` gold query, so no reasonable prediction can match. Likely reason: 73% of training queries are plain flight searches, and the from-scratch model leans on that pattern even more because it has no pretrained sense of words like "costs" or "prices". | 16/466 |
+| Wrong constant | #278 "... on america west": gold `airline_code = 'HP'`, predicted `'WN'`; #301 "how many seats in a 734": gold `'734'`, predicted `'733'` | Same query as the gold one except one value: an airline, aircraft or fare code, a city, or a transport type. Likely reason: rare codes lose to similar common ones, and the model has to memorize every name-to-code mapping from the training set alone. | 9/466 |
+
+These rows cover all 174 dev examples the model got wrong: 166 have record F1 below 1, plus 8 SQL errors that still scored 1.0 because the gold query also returns no rows. Each example is counted once (87 + 26 + 36 + 16 + 9 = 174). #3, which has a bogus gold query and also failed to run, is counted under SQL execution errors.
+"""),
+]
+
 
 # ---------------------------------------------------------------------------
 # Rendering (same look as the A3 writeup)
@@ -261,6 +324,10 @@ def build():
     s.append(Paragraph(
         "All Part 2 runs were done on NYU Torch, fine-tuning google-t5/t5-small with the code in part2/.", body))
     for sec in PART2:
+        section(*sec)
+
+    s.append(Paragraph("Extra credit", h1))
+    for sec in EC:
         section(*sec)
 
     doc = SimpleDocTemplate(str(OUTPUT), pagesize=(612, 792), rightMargin=58, leftMargin=58,

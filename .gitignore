@@ -11,3 +11,4 @@ logs/
 
 # local copy of the Q7 checkpoint (lives on Google Drive, too big for GitHub)
 submission/t5_best_checkpoint/
+submission/ec_out/t5_ec_checkpoint/
